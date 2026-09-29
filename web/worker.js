@@ -1,5 +1,5 @@
 import createScummST from "./scummst-engine.js";
-import {parseCue, Disc} from "./disc.js";
+import {parseCue, Disc} from "./disc.js?v=20260929-loom-disc";
 import {convertTownsAudio, convertLoomAudio} from "./audio.js";
 import {parseMonkeyCue} from "./monkey-disc.js";
 import {convertMonkeyAudio} from "./monkey-audio.js";

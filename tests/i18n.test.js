@@ -14,6 +14,21 @@ test("every translated HTML marker exists in both languages", () => {
   assert.deepEqual(Object.keys(translations.en).sort(), Object.keys(translations.pl).sort());
 });
 
+test("form selectors exist and release modules share the cache version", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const app = readFileSync(new URL("../app.js", import.meta.url), "utf8");
+  const worker = readFileSync(new URL("../web/worker.js", import.meta.url), "utf8");
+  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+  for (const match of app.matchAll(/(?:\$|files|file)\("([^"]+)"\)/g))
+    assert.ok(ids.has(match[1]), `missing form element ${match[1]}`);
+  const version = html.match(/app\.js\?v=([^" ]+)/)?.[1];
+  assert.ok(version, "unversioned app.js could remain stale after a deploy");
+  assert.ok(app.includes(`disc.js?v=${version}`));
+  assert.ok(app.includes(`i18n.js?v=${version}`));
+  assert.ok(app.includes(`worker.js?v=${version}`));
+  assert.ok(worker.includes(`disc.js?v=${version}`));
+});
+
 test("English UI and conversion diagnostics include filenames", () => {
   assert.equal(message("en", "readyCount", {count: 7, size: "12 MB"}), "7 files in READY/ · 12 MB");
   assert.equal(translateRuntime("en", "CUE wskazuje plik disc.bin, a wybrano other.bin."),

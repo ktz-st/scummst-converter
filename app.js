@@ -1,6 +1,6 @@
-import {parseCue, Disc} from "./web/disc.js";
+import {parseCue, Disc} from "./web/disc.js?v=20260929-loom-disc";
 import {createZip} from "./web/zip.js";
-import {message, translateRuntime} from "./web/i18n.js";
+import {message, translateRuntime} from "./web/i18n.js?v=20260929-loom-disc";
 import {parseMonkeyCue} from "./web/monkey-disc.js";
 
 const $ = (id) => document.getElementById(id);
@@ -205,7 +205,7 @@ async function convert() {
   let input;
   try { input = await validate(); }
   catch (error) { status("cannotContinue"); log(error.message); setRunning(false); return; }
-  worker = new Worker(new URL("./web/worker.js", import.meta.url), {type: "module"});
+  worker = new Worker(new URL("./web/worker.js?v=20260929-loom-disc", import.meta.url), {type: "module"});
   worker.onmessage = async ({data}) => {
     if (data.type === "log") { log(data.text); if (data.percent !== undefined) status("converting", data.percent); }
     else if (data.type === "error") {
