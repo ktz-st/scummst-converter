@@ -1,5 +1,7 @@
 # SCUMMST Converter
 
+[English documentation](README.en.md) · Interfejs strony: przełącznik PL/EN w prawym górnym rogu.
+
 Statyczny konwerter assetów INDY3T, Loom VGA CD i Zak FM-Towns do Atari STE.
 Cała konwersja odbywa się w przeglądarce: obrazy płyt nie są przesyłane na serwer.
 Strona nadaje się do publikacji na GitHub Pages bez backendu.

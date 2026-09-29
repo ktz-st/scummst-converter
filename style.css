@@ -4,3 +4,8 @@
 .field input[type="file"]::file-selector-button{border:1px solid #77966c;background:#263728;color:#dff0d3;border-radius:3px;padding:7px 11px;margin-right:13px;font:11px "DM Mono",monospace;cursor:pointer}
 .progress{width:100%;height:8px;accent-color:var(--accent);margin:0 0 20px}
 .download{text-decoration:none;max-width:300px;margin:18px 0 25px}
+.top-actions{display:flex;align-items:center;gap:22px}.language{display:flex;border:1px solid #5d755f;border-radius:4px;overflow:hidden}.language button{border:0;background:transparent;color:#9eb39f;font:700 11px "DM Mono",monospace;letter-spacing:.08em;padding:9px 11px}.language button+button{border-left:1px solid #5d755f}.language button.active{background:#b3e77a;color:#142016}.language button:focus-visible{outline:2px solid #f1a15b;outline-offset:-2px}
+@media(max-width:720px){.top-actions{gap:12px}.language button{padding:8px 9px}}
+.button span{font-size:inherit;font-weight:inherit}.button span:last-child{font-size:20px;font-weight:400}
+.advanced summary span{float:none;font-size:inherit;line-height:inherit}.advanced summary span:last-child{float:right;font-size:18px;line-height:12px}.advanced[open] summary span{transform:none}.advanced[open] summary span:last-child{transform:rotate(45deg)}
+.eyebrow span{color:inherit;margin-right:0}.eyebrow span:first-child{color:#b3e77a;margin-right:20px}

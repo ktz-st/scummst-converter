@@ -1,5 +1,6 @@
 import {parseCue, Disc} from "./web/disc.js";
 import {createZip} from "./web/zip.js";
+import {message, translateRuntime} from "./web/i18n.js";
 
 const $ = (id) => document.getElementById(id);
 const names = {INDY3T: {prg: "INDY3T.PRG", inf: "INDY3T.INF"},
@@ -8,18 +9,48 @@ const names = {INDY3T: {prg: "INDY3T.PRG", inf: "INDY3T.INF"},
 let running = false;
 let downloadURL = null;
 let worker = null;
+let language = "pl";
+try { language = localStorage.getItem("scummst-language") === "en" ? "en" : "pl"; } catch { /* Storage may be disabled. */ }
+let currentStatus = {key: "waiting", percent: null};
+let outputSummary = null;
+const logEntries = [];
+const t = (key, values) => message(language, key, values);
+
+function renderLog() {
+  const area = $("log");
+  area.textContent = logEntries.map((entry) => entry.key ? t(entry.key, entry.values) : translateRuntime(language, entry.text)).join("\n");
+  if (logEntries.length) area.textContent += "\n";
+  area.scrollTop = area.scrollHeight;
+}
+function setLanguage(lang) {
+  language = lang === "en" ? "en" : "pl";
+  document.documentElement.lang = language;
+  try { localStorage.setItem("scummst-language", language); } catch { /* Storage may be disabled. */ }
+  for (const element of document.querySelectorAll("[data-i18n]")) element.textContent = t(element.dataset.i18n);
+  for (const element of document.querySelectorAll("[data-i18n-html]")) element.innerHTML = t(element.dataset.i18nHtml);
+  for (const element of document.querySelectorAll("[data-i18n-aria-label]")) element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+  document.querySelectorAll("[data-lang]").forEach((button) => {
+    const active = button.dataset.lang === language;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  $("status").textContent = t(currentStatus.key);
+  if (outputSummary) renderSummary();
+  renderLog();
+}
 
 function game() { return document.querySelector('input[name="game"]:checked').value; }
 function files(id) { return [...$(id).files]; }
 function file(id) { return files(id)[0] || null; }
 function log(text) {
-  const area = $("log");
-  area.textContent += `${text}\n`;
-  area.scrollTop = area.scrollHeight;
+  logEntries.push({text});
+  renderLog();
 }
-function status(text, percent = null) {
+function logKey(key, values = {}) { logEntries.push({key, values}); renderLog(); }
+function status(key, percent = null) {
+  currentStatus = {key, percent};
   $("result").classList.remove("hidden");
-  $("status").textContent = text;
+  $("status").textContent = t(key);
   if (percent !== null) {
     $("progress").classList.remove("hidden");
     $("progress").value = percent;
@@ -45,21 +76,23 @@ function clearOutput() {
   $("file-list").classList.add("hidden");
   $("file-list").replaceChildren();
   $("log").textContent = "";
+  logEntries.length = 0;
   $("output-path").textContent = "";
+  outputSummary = null;
   $("progress").classList.add("hidden");
   $("progress").value = 0;
 }
 
 async function validate() {
   const cueFile = file("cue"), binFile = file("bin");
-  if (!cueFile || !binFile) throw new Error("Wybierz CUE i BIN.");
+  if (!cueFile || !binFile) throw new Error(message("pl", "missingCueBin"));
   const cue = parseCue(await cueFile.text());
   if (cue.binName.toLowerCase() !== binFile.name.toLowerCase())
     throw new Error(`CUE wskazuje plik ${cue.binName}, a wybrano ${binFile.name}.`);
   const disc = new Disc(binFile, cue.tracks);
   if (game() === "LOOM") {
     if (cue.tracks.length !== 2 || cue.tracks[1].kind !== "AUDIO" || cue.tracks[1].start !== 22500)
-      throw new Error("Wymagana jest płyta Loom VGA CD ze ścieżką AUDIO od 05:00:00.");
+      throw new Error(message("pl", "loomDisc"));
     const inputs = files("data").map((item) => item.name.toUpperCase());
     for (const name of ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"])
       if (!inputs.includes(name)) throw new Error(`Brak wypakowanego pliku Loom ${name}.`);
@@ -82,13 +115,13 @@ async function check() {
   if (running) return;
   clearOutput();
   setRunning(true);
-  status("Sprawdzanie plików…", 2);
+  status("checking", 2);
   try {
     const input = await validate();
-    status("Pliki wyglądają poprawnie", 100);
-    log(`${input.game}: CUE, BIN i wymagane pliki źródłowe są dostępne.`);
-    log("Sprawdzenie nie obejmuje pełnej walidacji wszystkich zasobów gry.");
-  } catch (error) { status("Nie można kontynuować"); log(error.message); }
+    status("valid", 100);
+    logKey("checkOk", {game: input.game});
+    logKey("checkPartial");
+  } catch (error) { status("cannotContinue"); log(error.message); }
   finally { setRunning(false); }
 }
 
@@ -124,7 +157,7 @@ async function complete(message) {
   const archive = new Map([["conversion.json", new Blob([JSON.stringify(manifest, null, 2) + "\n"])] ]);
   for (const [name, content] of ready) archive.set(`READY/${name}`, content);
   const zip = await createZip(archive, (fraction) => {
-    status("Pakowanie ZIP…", 93 + Math.round(fraction * 7));
+    status("packing", 93 + Math.round(fraction * 7));
   });
   showFiles(ready);
   downloadURL = URL.createObjectURL(zip);
@@ -132,10 +165,10 @@ async function complete(message) {
   download.href = downloadURL;
   download.download = `${game()}-SCUMMST-READY.zip`;
   download.classList.remove("hidden");
-  status("Gotowe — pobierz ZIP", 100);
-  $("output-path").textContent = `${ready.size} plików w READY/ · ${readableSize(zip.size)}` +
-    (!file("prg") || !file("inf") ? " · dodaj PRG/INF z własnego builda przed uruchomieniem na STE" : "");
-  log("Gotowe. Pliki źródłowe nie opuściły przeglądarki.");
+  status("complete", 100);
+  outputSummary = {count: ready.size, size: readableSize(zip.size), missingProgram: !file("prg") || !file("inf")};
+  renderSummary();
+  logKey("doneLog");
   setRunning(false);
   worker?.terminate(); worker = null;
 }
@@ -144,25 +177,25 @@ async function convert() {
   if (running) return;
   clearOutput();
   setRunning(true);
-  status("Sprawdzanie plików…", 1);
+  status("checking", 1);
   let input;
   try { input = await validate(); }
-  catch (error) { status("Nie można kontynuować"); log(error.message); setRunning(false); return; }
+  catch (error) { status("cannotContinue"); log(error.message); setRunning(false); return; }
   worker = new Worker(new URL("./web/worker.js", import.meta.url), {type: "module"});
   worker.onmessage = async ({data}) => {
-    if (data.type === "log") { log(data.text); if (data.percent !== undefined) status("Trwa konwersja…", data.percent); }
+    if (data.type === "log") { log(data.text); if (data.percent !== undefined) status("converting", data.percent); }
     else if (data.type === "error") {
-      status("Błąd konwersji"); log(data.error); setRunning(false); worker.terminate(); worker = null;
+      status("conversionError"); log(data.error); setRunning(false); worker.terminate(); worker = null;
     } else if (data.type === "done") {
       try { await complete(data); }
-      catch (error) { status("Błąd pakowania ZIP"); log(error.message); setRunning(false); }
+      catch (error) { status("zipError"); log(error.message); setRunning(false); }
     }
   };
   worker.onerror = (event) => {
-    status("Błąd modułu WebAssembly"); log(event.message || "Nieznany błąd Workera.");
+    status("wasmError"); log(event.message || t("unknownWorker"));
     setRunning(false); worker.terminate(); worker = null;
   };
-  status("Uruchamianie modułu WebAssembly…", 2);
+  status("startingWasm", 2);
   worker.postMessage(input);
 }
 
@@ -170,4 +203,9 @@ document.querySelectorAll('input[name="game"]').forEach((radio) => radio.addEven
 $("check").addEventListener("click", check);
 $("convert").addEventListener("click", convert);
 $("copy-log").addEventListener("click", () => navigator.clipboard.writeText($("log").textContent));
+document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => setLanguage(button.dataset.lang)));
+function renderSummary() {
+  $("output-path").textContent = t("readyCount", outputSummary) + (outputSummary.missingProgram ? t("missingProgram") : "");
+}
+setLanguage(language);
 selectedGame();
