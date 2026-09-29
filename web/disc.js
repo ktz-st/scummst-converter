@@ -3,6 +3,7 @@
 const SECTOR = 2352;
 const USER_OFFSET = 16;
 const USER_SIZE = 2048;
+export const LOOM_FILES = ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"];
 
 function u32(bytes, at) {
   return (bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24)) >>> 0;
@@ -103,6 +104,25 @@ export class Disc {
       if (!result.has(required)) throw new Error(`Brak ${required} w katalogu ${directory}.`);
     result.set(game === "INDY3T" ? "TOWNS.ID" : "ZAK.ID",
       new TextEncoder().encode(`${directory} FM-Towns; target ${game === "INDY3T" ? "indy3t" : "zakt"}\n`));
+    return result;
+  }
+
+  loomExtents() {
+    const result = new Map();
+    for (const name of LOOM_FILES) {
+      const extent = this.files.get(`/${name}`) ||
+        [...this.files].find(([path]) => path.toUpperCase() === `/${name}`)?.[1];
+      if (!extent) throw new Error(`Brak ${name} w obrazie CD.`);
+      result.set(name, extent);
+    }
+    return result;
+  }
+
+  async extractLoom() {
+    if (!this.files.size) await this.scan();
+    const result = new Map();
+    for (const [name, extent] of this.loomExtents())
+      result.set(name, await this.read(extent.sector, extent.size));
     return result;
   }
 }

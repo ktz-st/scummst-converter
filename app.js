@@ -67,7 +67,6 @@ function setRunning(value) {
 function selectedGame() {
   document.querySelectorAll(".game").forEach((card) =>
     card.classList.toggle("active", card.querySelector("input").checked));
-  $("data-field-loom").classList.toggle("hidden", game() !== "LOOM");
   $("data-field-monkey").classList.toggle("hidden", game() !== "MONKEY1");
   $("bin-hint-standard").classList.toggle("hidden", game() === "MONKEY1");
   $("bin-hint-monkey").classList.toggle("hidden", game() !== "MONKEY1");
@@ -111,9 +110,8 @@ async function validate() {
     if (game() === "LOOM") {
       if (cue.tracks.length !== 2 || cue.tracks[1].kind !== "AUDIO" || cue.tracks[1].start !== 22500)
         throw new Error(message("pl", "loomDisc"));
-      const inputs = files("data").map((item) => item.name.toUpperCase());
-      for (const name of ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"])
-        if (!inputs.includes(name)) throw new Error(`Brak wypakowanego pliku Loom ${name}.`);
+      await disc.scan();
+      disc.loomExtents();
     } else {
       const entries = await disc.scan();
       const folder = game() === "INDY3T" ? "INDY3ENG" : "ZAKENG";
@@ -127,7 +125,7 @@ async function validate() {
     if (chosen && chosen.name.toUpperCase() !== names[game()][kind])
       throw new Error(`Dla ${game()} wybierz ${names[game()][kind]}.`);
   }
-  return {cueFile, binFile, binFiles, dataFiles: files(game() === "MONKEY1" ? "monkey-data" : "data"), game: game()};
+  return {cueFile, binFile, binFiles, dataFiles: game() === "MONKEY1" ? files("monkey-data") : [], game: game()};
 }
 
 async function check() {

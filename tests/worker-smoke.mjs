@@ -21,13 +21,6 @@ const binFiles = await Promise.all(binNames.map(async (name) => {
 }));
 const binFile = binFiles[0];
 const dataFiles = [];
-if (game === "LOOM") {
-  for (const name of ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"]) {
-    const blob = await openAsBlob(join(root, "loom-vga/extracted/game-files", name));
-    blob.name = name;
-    dataFiles.push(blob);
-  }
-}
 if (game === "MONKEY1") {
   for (const name of ["monkey.000", "monkey.001", "monster.sou"]) {
     const blob = await openAsBlob(join(root, "monkey1-vga/MI1UTDE", name));

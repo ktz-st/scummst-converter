@@ -37,17 +37,10 @@ async function run({game, cueFile, binFile, binFiles, dataFiles}) {
     if (!source.has("MONKEY.000") || !source.has("MONKEY.001") || !monster)
       throw new Error("MONKEY1 wymaga MONKEY.000, MONKEY.001 i MONSTER.SOU.");
   } else if (game === "LOOM") {
-    source = new Map();
-    for (const file of dataFiles) {
-      const name = file.name.toUpperCase();
-      if (!/^(000|901|902|903|904)\.LFL$|^DISK01\.LEC$/.test(name)) continue;
-      if (source.has(name)) throw new Error(`Powtórzony plik ${name}.`);
-      source.set(name, new Uint8Array(await file.arrayBuffer()));
-    }
-    for (const name of ["000.LFL", "DISK01.LEC", ...spec.fonts])
-      if (!source.has(name)) throw new Error(`Brak pliku Loom ${name}.`);
     if (disc.tracks.length !== 2 || disc.tracks[1].kind !== "AUDIO" || disc.tracks[1].start !== 22500)
       throw new Error("Ta płyta nie ma układu Loom VGA CD.");
+    log("Ekstrakcja plików Loom z obrazu CD…", 7);
+    source = await disc.extractLoom();
   } else {
     log("Ekstrakcja angielskich plików LFL z ISO9660…", 7);
     source = await disc.extractEnglish(game);

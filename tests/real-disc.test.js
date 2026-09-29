@@ -3,7 +3,7 @@ import {createHash} from "node:crypto";
 import {existsSync, readFileSync, openAsBlob} from "node:fs";
 import {dirname, join} from "node:path";
 import test from "node:test";
-import {parseCue, Disc} from "../web/disc.js";
+import {parseCue, Disc, LOOM_FILES} from "../web/disc.js";
 
 const root = process.env.SCUMMST_WORKSPACE;
 const cases = [
@@ -25,3 +25,16 @@ for (const [game, cuePath, referencePath] of cases) {
     assert.equal(extracted, reference);
   });
 }
+
+test("LOOM: browser ISO extraction matches all previously extracted game files", {skip: !root}, async () => {
+  const fullCue = join(root, "loom-vga/loom-pc-vga40-en.cue");
+  const {binName, tracks} = parseCue(readFileSync(fullCue, "utf8"));
+  const disc = new Disc(await openAsBlob(join(dirname(fullCue), binName)), tracks);
+  const result = await disc.extractLoom();
+  assert.deepEqual([...result.keys()], LOOM_FILES);
+  for (const name of LOOM_FILES) {
+    const extracted = createHash("sha256").update(result.get(name)).digest("hex");
+    const reference = createHash("sha256").update(readFileSync(join(root, "loom-vga/extracted/game-files", name))).digest("hex");
+    assert.equal(extracted, reference, name);
+  }
+});
