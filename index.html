@@ -24,27 +24,29 @@
         <div class="games" role="radiogroup" aria-label="Gra" data-i18n-aria-label="gameAria">
           <label class="game active"><input type="radio" name="game" value="INDY3T" checked><span class="game-id">INDY3T</span><strong>Indiana Jones III</strong><small>FM-Towns · English</small><span class="select-mark">↗</span></label>
           <label class="game"><input type="radio" name="game" value="LOOM"><span class="game-id">LOOM</span><strong>Loom</strong><small>VGA · CD-ROM</small><span class="select-mark">↗</span></label>
+          <label class="game"><input type="radio" name="game" value="MONKEY1"><span class="game-id">MONKEY1</span><strong>Monkey Island</strong><small>VGA CD · Ultimate Talkie</small><span class="select-mark">↗</span></label>
           <label class="game"><input type="radio" name="game" value="ZAK"><span class="game-id">ZAK</span><strong>Zak McKracken</strong><small>FM-Towns · English</small><span class="select-mark">↗</span></label>
         </div>
       </section>
 
       <section class="card" aria-labelledby="source-title">
-        <div class="section-head"><span class="number">02</span><div><h2 id="source-title" data-i18n="inputs">Pliki wejściowe</h2><p data-i18n="inputsHint">Wybierz CUE oraz wskazany w nim BIN. Dla Loom dołącz także pliki gry wypakowane z płyty.</p></div></div>
+        <div class="section-head"><span class="number">02</span><div><h2 id="source-title" data-i18n="inputs">Pliki wejściowe</h2><p data-i18n="inputsHint">Wybierz CUE oraz wskazany w nim BIN. Dla Loom i Monkey1 dołącz także pliki gry.</p></div></div>
         <div class="fields">
           <label class="field"><span><span data-i18n="cueFile">Plik CUE</span> <b data-i18n="required">wymagane</b></span><input id="cue" type="file" accept=".cue,text/plain"><small data-i18n="cueHint">Tekstowy opis ścieżek płyty.</small></label>
-          <label class="field"><span><span data-i18n="binFile">Plik BIN</span> <b data-i18n="required">wymagane</b></span><input id="bin" type="file" accept=".bin,application/octet-stream"><small data-i18n="binHint">Surowy obraz CD z sektorami 2352 B.</small></label>
-          <label class="field full hidden" id="data-field"><span><span data-i18n="loomFiles">Pliki gry Loom</span> <b data-i18n="required">wymagane</b></span><input id="data" type="file" multiple><small data-i18n-html="loomHint">Wybierz razem: <code>000.LFL</code>, <code>DISK01.LEC</code> i <code>901–904.LFL</code>.</small></label>
+          <label class="field"><span><span data-i18n="binFile">Plik BIN</span> <b data-i18n="required">wymagane</b></span><input id="bin" type="file" accept=".bin,application/octet-stream" multiple><small id="bin-hint-standard" data-i18n="binHint">Surowy obraz CD z sektorami 2352 B.</small><small id="bin-hint-monkey" class="hidden" data-i18n="monkeyBinHint">Wybierz jednocześnie wszystkie pliki BIN wymienione w CUE.</small></label>
+          <label class="field full hidden" id="data-field-loom"><span><span data-i18n="loomFiles">Pliki gry Loom</span> <b data-i18n="required">wymagane</b></span><input id="data" type="file" multiple><small data-i18n-html="loomHint">Wybierz razem: <code>000.LFL</code>, <code>DISK01.LEC</code> i <code>901–904.LFL</code>.</small></label>
+          <label class="field full hidden" id="data-field-monkey"><span><span data-i18n="monkeyFiles">Pliki gry Monkey1</span> <b data-i18n="required">wymagane</b></span><input id="monkey-data" type="file" multiple><small data-i18n-html="monkeyHint">Wybierz razem: <code>MONKEY.000</code>, <code>MONKEY.001</code> i <code>MONSTER.SOU</code>.</small></label>
         </div>
-        <details class="advanced"><summary><span data-i18n="advanced">Dołącz aktualny program i konfigurację Atari</span> <span>+</span></summary><div class="fields advanced-fields">
-          <label class="field"><span>PRG <b data-i18n="optional">opcjonalnie</b></span><input id="prg" type="file" accept=".prg"><small data-i18n="prgHint">Program z Twojego lokalnego builda SCUMMST.</small></label>
-          <label class="field"><span>INF <b data-i18n="optional">opcjonalnie</b></span><input id="inf" type="file" accept=".inf"><small data-i18n="infHint">Ustawienia gry z tego samego builda.</small></label>
+        <details class="advanced"><summary><span data-i18n="advanced">Zastąp dołączony program lub konfigurację Atari</span> <span>+</span></summary><div class="fields advanced-fields">
+          <label class="field"><span>PRG <b data-i18n="optional">opcjonalnie</b></span><input id="prg" type="file" accept=".prg"><small data-i18n="prgHint">Własny PRG zamiast wersji dołączonej do strony.</small></label>
+          <label class="field"><span>INF <b data-i18n="optional">opcjonalnie</b></span><input id="inf" type="file" accept=".inf"><small data-i18n="infHint">Własna konfiguracja zamiast domyślnej.</small></label>
         </div></details>
       </section>
 
       <section class="card run-card" aria-labelledby="run-title">
         <div class="section-head"><span class="number">03</span><div><h2 id="run-title" data-i18n="runTitle">Sprawdź i konwertuj</h2><p data-i18n="runHint">Konwersja obrazu CD może potrwać kilka minut. Nie zamykaj karty do pobrania ZIP.</p></div></div>
         <div class="actions"><button id="check" type="button" class="button secondary"><span data-i18n="check">Sprawdź pliki</span> <span>↗</span></button><button id="convert" type="button" class="button primary"><span data-i18n="convert">Rozpocznij konwersję</span> <span>→</span></button></div>
-        <p class="note" data-i18n-html="note">Audio ma format 8-bit mono 12516 Hz, a grafika <code>.ST0/.ST1</code> dla SCUMMST. Resampler JS może dać nieco inne próbki niż wcześniejszy pipeline FFmpeg. Plików gry ani PRG nie udostępniamy na stronie.</p>
+        <p class="note" data-i18n-html="note">Audio ma format 8-bit mono 12516 Hz, a grafika <code>.ST0/.ST1</code> dla SCUMMST. Resampler JS może dać nieco inne próbki niż wcześniejszy pipeline FFmpeg. Oryginalnych plików gry nie udostępniamy na stronie; dołączamy PRG użytkownika.</p>
         <div id="result" class="result hidden" aria-live="polite">
           <div class="result-header"><div><span class="result-label">STATUS</span><h3 id="status" data-i18n="waiting">Oczekiwanie</h3></div><span id="spinner" class="spinner hidden"></span></div>
           <p id="output-path" class="output-path"></p>

@@ -1,11 +1,13 @@
 import {parseCue, Disc} from "./web/disc.js";
 import {createZip} from "./web/zip.js";
 import {message, translateRuntime} from "./web/i18n.js";
+import {parseMonkeyCue} from "./web/monkey-disc.js";
 
 const $ = (id) => document.getElementById(id);
-const names = {INDY3T: {prg: "INDY3T.PRG", inf: "INDY3T.INF"},
-  LOOM: {prg: "LOOM.PRG", inf: "LOOMCD.INF"},
-  ZAK: {prg: "ZAKT.PRG", inf: "ZAKT.INF"}};
+const names = {INDY3T: {prg: "INDY3T.PRG", inf: "INDY3T.INF", bundled: "INDY3T.PRG"},
+  LOOM: {prg: "LOOM.PRG", inf: "LOOMCD.INF", bundled: "LOOM.PRG"},
+  MONKEY1: {prg: "M1PCM.PRG", inf: "MONKEY.INF", bundled: "MONKEY1.PRG"},
+  ZAK: {prg: "ZAKT.PRG", inf: "ZAKT.INF", bundled: "ZAKT.PRG"}};
 let running = false;
 let downloadURL = null;
 let worker = null;
@@ -65,7 +67,10 @@ function setRunning(value) {
 function selectedGame() {
   document.querySelectorAll(".game").forEach((card) =>
     card.classList.toggle("active", card.querySelector("input").checked));
-  $("data-field").classList.toggle("hidden", game() !== "LOOM");
+  $("data-field-loom").classList.toggle("hidden", game() !== "LOOM");
+  $("data-field-monkey").classList.toggle("hidden", game() !== "MONKEY1");
+  $("bin-hint-standard").classList.toggle("hidden", game() === "MONKEY1");
+  $("bin-hint-monkey").classList.toggle("hidden", game() !== "MONKEY1");
 }
 function readableSize(size) {
   return size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : `${(size / 1024).toFixed(1)} KB`;
@@ -84,31 +89,45 @@ function clearOutput() {
 }
 
 async function validate() {
-  const cueFile = file("cue"), binFile = file("bin");
+  const cueFile = file("cue"), binFiles = files("bin"), binFile = binFiles[0];
   if (!cueFile || !binFile) throw new Error(message("pl", "missingCueBin"));
-  const cue = parseCue(await cueFile.text());
-  if (cue.binName.toLowerCase() !== binFile.name.toLowerCase())
-    throw new Error(`CUE wskazuje plik ${cue.binName}, a wybrano ${binFile.name}.`);
-  const disc = new Disc(binFile, cue.tracks);
-  if (game() === "LOOM") {
-    if (cue.tracks.length !== 2 || cue.tracks[1].kind !== "AUDIO" || cue.tracks[1].start !== 22500)
-      throw new Error(message("pl", "loomDisc"));
-    const inputs = files("data").map((item) => item.name.toUpperCase());
-    for (const name of ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"])
-      if (!inputs.includes(name)) throw new Error(`Brak wypakowanego pliku Loom ${name}.`);
+  const cueText = await cueFile.text();
+  if (game() === "MONKEY1") {
+    parseMonkeyCue(cueText, binFiles);
+    const dataFiles = files("monkey-data");
+    const inputs = dataFiles.map((item) => item.name.toUpperCase());
+    for (const name of ["MONKEY.000", "MONKEY.001", "MONSTER.SOU"])
+      if (!inputs.includes(name)) throw new Error(`Brak pliku Monkey1 ${name}.`);
+    const monster = dataFiles.find((item) => item.name.toUpperCase() === "MONSTER.SOU");
+    const header = new Uint8Array(await monster.slice(0, 8).arrayBuffer());
+    if (String.fromCharCode(...header) !== "SOU \0\0\0\0")
+      throw new Error("Wymagany jest poprawny MONSTER.SOU.");
   } else {
-    const entries = await disc.scan();
-    const folder = game() === "INDY3T" ? "INDY3ENG" : "ZAKENG";
-    for (const name of ["00.LFL", "98.LFL", "99.LFL"])
-      if (![...entries.keys()].some((key) => key.toUpperCase() === `/${folder}/${name}`))
-        throw new Error(`Brak ${folder}/${name} w obrazie CD.`);
+    if (binFiles.length !== 1) throw new Error("Dla tej gry wybierz dokładnie jeden BIN.");
+    const cue = parseCue(cueText);
+    if (cue.binName.toLowerCase() !== binFile.name.toLowerCase())
+      throw new Error(`CUE wskazuje plik ${cue.binName}, a wybrano ${binFile.name}.`);
+    const disc = new Disc(binFile, cue.tracks);
+    if (game() === "LOOM") {
+      if (cue.tracks.length !== 2 || cue.tracks[1].kind !== "AUDIO" || cue.tracks[1].start !== 22500)
+        throw new Error(message("pl", "loomDisc"));
+      const inputs = files("data").map((item) => item.name.toUpperCase());
+      for (const name of ["000.LFL", "DISK01.LEC", "901.LFL", "902.LFL", "903.LFL", "904.LFL"])
+        if (!inputs.includes(name)) throw new Error(`Brak wypakowanego pliku Loom ${name}.`);
+    } else {
+      const entries = await disc.scan();
+      const folder = game() === "INDY3T" ? "INDY3ENG" : "ZAKENG";
+      for (const name of ["00.LFL", "98.LFL", "99.LFL"])
+        if (![...entries.keys()].some((key) => key.toUpperCase() === `/${folder}/${name}`))
+          throw new Error(`Brak ${folder}/${name} w obrazie CD.`);
+    }
   }
   for (const kind of ["prg", "inf"]) {
     const chosen = file(kind);
     if (chosen && chosen.name.toUpperCase() !== names[game()][kind])
       throw new Error(`Dla ${game()} wybierz ${names[game()][kind]}.`);
   }
-  return {cueFile, binFile, dataFiles: files("data"), game: game()};
+  return {cueFile, binFile, binFiles, dataFiles: files(game() === "MONKEY1" ? "monkey-data" : "data"), game: game()};
 }
 
 async function check() {
@@ -145,12 +164,19 @@ async function complete(message) {
   for (const kind of ["prg", "inf"]) {
     const chosen = file(kind);
     if (chosen) ready.set(names[game()][kind], chosen);
+    else if (kind === "prg") {
+      const response = await fetch(new URL(`./prgs/${names[game()].bundled}`, import.meta.url));
+      if (!response.ok) throw new Error(`Nie udało się wczytać prgs/${names[game()].bundled}.`);
+      ready.set(names[game()].prg, await response.blob());
+    } else ready.set(names[game()].inf, new Blob([new Uint8Array([1, 3, 2, 0xc0, 1])]));
   }
   const manifest = {
     game: game(),
     converter: "ScummST resource converter v8, Emscripten / WebAssembly",
-    audio: "JavaScript 24-tap resampler, 12516 Hz, 8-bit; not byte-identical to FFmpeg",
-    source: {cue: file("cue").name, bin: file("bin").name},
+    audio: game() === "MONKEY1" ?
+      "JavaScript 24-tap CD / 12-tap VOC resamplers, 12516 Hz, 8-bit; CD110 intro matched to about -14.6 LUFS; not byte-identical to FFmpeg" :
+      "JavaScript 24-tap resampler, 12516 Hz, 8-bit; not byte-identical to FFmpeg",
+    source: {cue: file("cue").name, bins: files("bin").map((item) => item.name)},
     ready: [...ready].map(([name, content]) => ({name, bytes: content.size})),
     generated: new Date().toISOString(),
   };
@@ -166,7 +192,7 @@ async function complete(message) {
   download.download = `${game()}-SCUMMST-READY.zip`;
   download.classList.remove("hidden");
   status("complete", 100);
-  outputSummary = {count: ready.size, size: readableSize(zip.size), missingProgram: !file("prg") || !file("inf")};
+  outputSummary = {count: ready.size, size: readableSize(zip.size)};
   renderSummary();
   logKey("doneLog");
   setRunning(false);
@@ -205,7 +231,7 @@ $("convert").addEventListener("click", convert);
 $("copy-log").addEventListener("click", () => navigator.clipboard.writeText($("log").textContent));
 document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => setLanguage(button.dataset.lang)));
 function renderSummary() {
-  $("output-path").textContent = t("readyCount", outputSummary) + (outputSummary.missingProgram ? t("missingProgram") : "");
+  $("output-path").textContent = t("readyCount", outputSummary);
 }
 setLanguage(language);
 selectedGame();

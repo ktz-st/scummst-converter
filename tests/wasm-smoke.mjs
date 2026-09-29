@@ -10,6 +10,7 @@ if (!root) throw new Error("Set SCUMMST_WORKSPACE");
 const sources = {
   INDY3T: "indy-vga/fm-towns-ste",
   LOOM: "loom-vga/extracted/game-files",
+  MONKEY1: "monkey1-vga/MI1UTDE",
   ZAK: "zak-fm-towns/game-files",
 };
 const directory = join(root, sources[game]);
@@ -22,7 +23,7 @@ const module = await createScummST({
 const {FS} = module;
 FS.mkdir("/game");
 for (const name of readdirSync(directory)) {
-  if (/^(\d{2,3}\.LFL|DISK01\.LEC)$/i.test(name))
+  if (/^(\d{2,3}\.LFL|DISK01\.LEC|MONKEY\.00[01])$/i.test(name))
     FS.writeFile(`/game/${name.toUpperCase()}`, readFileSync(join(directory, name)));
 }
 if (game === "INDY3T") FS.writeFile("/game/TOWNS.ID", "TOWNS\n");

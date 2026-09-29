@@ -24,3 +24,4 @@ node_modules/
 *.ST1
 *.zip
 *.ZIP
+!prgs/*.PRG

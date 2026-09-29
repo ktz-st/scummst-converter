@@ -9,3 +9,6 @@
 .button span{font-size:inherit;font-weight:inherit}.button span:last-child{font-size:20px;font-weight:400}
 .advanced summary span{float:none;font-size:inherit;line-height:inherit}.advanced summary span:last-child{float:right;font-size:18px;line-height:12px}.advanced[open] summary span{transform:none}.advanced[open] summary span:last-child{transform:rotate(45deg)}
 .eyebrow span{color:inherit;margin-right:0}.eyebrow span:first-child{color:#b3e77a;margin-right:20px}
+.games{grid-template-columns:repeat(4,minmax(0,1fr))}.game{padding:16px}.game strong{font-size:17px}
+@media(max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.games{grid-template-columns:1fr}}

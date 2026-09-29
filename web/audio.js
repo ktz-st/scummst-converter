@@ -12,6 +12,7 @@ const u32 = (b, p) => (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 
 const put32 = (v, b, p) => { for (let i = 0; i < 4; i++) b[p + i] = (v >>> (i * 8)) & 255; };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const signed = (value) => value < 128 ? value : value - 256;
+const voiceTables = new Map();
 
 function filterTable(sourceRate) {
   const cutoff = Math.min(1, RATE / sourceRate) * 0.94;
@@ -37,10 +38,52 @@ function quantize(value) {
   return clamp(Math.round(value * 128), -128, 127) & 255;
 }
 
+// VOC speech and SBL effects are 8-bit unsigned mono. A cached 12-tap table
+// avoids rebuilding coefficients for every one of the thousands of cues.
+export function resampleUnsigned8(raw, sourceRate) {
+  if (!Number.isFinite(sourceRate) || sourceRate <= 0 || !raw.length)
+    throw new Error("Niepoprawna próbka VOC.");
+  const taps = 12, half = taps / 2;
+  let table = voiceTables.get(sourceRate);
+  if (!table) {
+    table = new Float32Array(PHASES * taps);
+    const cutoff = Math.min(1, RATE / sourceRate) * 0.94;
+    for (let phase = 0; phase < PHASES; phase++) {
+      const fraction = phase / PHASES;
+      let sum = 0;
+      for (let tap = 0; tap < taps; tap++) {
+        const distance = tap - (half - 1) - fraction;
+        const x = Math.PI * distance * cutoff;
+        const sinc = x === 0 ? 1 : Math.sin(x) / x;
+        const window = Math.abs(distance) < half ? 0.5 + 0.5 * Math.cos(Math.PI * distance / half) : 0;
+        const value = cutoff * sinc * window;
+        table[phase * taps + tap] = value;
+        sum += value;
+      }
+      for (let tap = 0; tap < taps; tap++) table[phase * taps + tap] /= sum;
+    }
+    voiceTables.set(sourceRate, table);
+  }
+  const result = new Uint8Array(Math.round(raw.length * RATE / sourceRate));
+  for (let out = 0; out < result.length; out++) {
+    const position = out * sourceRate / RATE;
+    const center = Math.floor(position);
+    const phase = Math.min(PHASES - 1, Math.round((position - center) * PHASES));
+    let value = 0;
+    const base = phase * taps;
+    for (let tap = 0; tap < taps; tap++) {
+      const index = clamp(center + tap - half + 1, 0, raw.length - 1);
+      value += (raw[index] - 128) / 128 * table[base + tap];
+    }
+    result[out] = quantize(value);
+  }
+  return result;
+}
+
 function createLimiter(options = {}) {
   const gain = 10 ** ((options.gainDb || 0) / 20);
   const ceiling = options.ceiling ?? 1;
-  const release = 1 - Math.exp(-1 / (RATE * 0.08));
+  const release = 1 - Math.exp(-1 / (RATE * ((options.releaseMs ?? 80) / 1000)));
   let reduction = 1;
   return (sample) => {
     const boosted = sample * gain;
