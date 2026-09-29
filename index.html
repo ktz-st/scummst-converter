@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SCUMMST Converter</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">S<span>›</span></span><div><strong>SCUMMST</strong><small>ASSET CONVERTER</small></div></div>
+      <span class="local"><span class="led"></span> 100% W PRZEGLĄDARCE</span>
+    </header>
+    <main>
+      <div class="eyebrow"><span>01 / 03</span> PŁYTA → KONWERSJA → ZIP</div>
+      <h1>Przenieś przygodę<br><em>na Atari STE.</em></h1>
+      <p class="intro">Wybierz własne pliki źródłowe. Grafika i dźwięk są konwertowane lokalnie przez JavaScript i WebAssembly — nic nie jest wysyłane na serwer.</p>
+
+      <section class="card game-card" aria-labelledby="game-title">
+        <div class="section-head"><span class="number">01</span><div><h2 id="game-title">Wybierz grę</h2><p>Wersja źródłowa musi odpowiadać opisowi.</p></div></div>
+        <div class="games" role="radiogroup" aria-label="Gra">
+          <label class="game active"><input type="radio" name="game" value="INDY3T" checked><span class="game-id">INDY3T</span><strong>Indiana Jones III</strong><small>FM-Towns · English</small><span class="select-mark">↗</span></label>
+          <label class="game"><input type="radio" name="game" value="LOOM"><span class="game-id">LOOM</span><strong>Loom</strong><small>VGA · CD-ROM</small><span class="select-mark">↗</span></label>
+          <label class="game"><input type="radio" name="game" value="ZAK"><span class="game-id">ZAK</span><strong>Zak McKracken</strong><small>FM-Towns · English</small><span class="select-mark">↗</span></label>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="source-title">
+        <div class="section-head"><span class="number">02</span><div><h2 id="source-title">Pliki wejściowe</h2><p>Wybierz CUE oraz wskazany w nim BIN. Dla Loom dołącz także pliki gry wypakowane z płyty.</p></div></div>
+        <div class="fields">
+          <label class="field"><span>Plik CUE <b>wymagane</b></span><input id="cue" type="file" accept=".cue,text/plain"><small>Tekstowy opis ścieżek płyty.</small></label>
+          <label class="field"><span>Plik BIN <b>wymagane</b></span><input id="bin" type="file" accept=".bin,application/octet-stream"><small>Surowy obraz CD z sektorami 2352 B.</small></label>
+          <label class="field full hidden" id="data-field"><span>Pliki gry Loom <b>wymagane</b></span><input id="data" type="file" multiple><small>Wybierz razem: <code>000.LFL</code>, <code>DISK01.LEC</code> i <code>901–904.LFL</code>.</small></label>
+        </div>
+        <details class="advanced"><summary>Dołącz aktualny program i konfigurację Atari <span>+</span></summary><div class="fields advanced-fields">
+          <label class="field"><span>PRG <b>opcjonalnie</b></span><input id="prg" type="file" accept=".prg"><small>Program z Twojego lokalnego builda SCUMMST.</small></label>
+          <label class="field"><span>INF <b>opcjonalnie</b></span><input id="inf" type="file" accept=".inf"><small>Ustawienia gry z tego samego builda.</small></label>
+        </div></details>
+      </section>
+
+      <section class="card run-card" aria-labelledby="run-title">
+        <div class="section-head"><span class="number">03</span><div><h2 id="run-title">Sprawdź i konwertuj</h2><p>Konwersja obrazu CD może potrwać kilka minut. Nie zamykaj karty do pobrania ZIP.</p></div></div>
+        <div class="actions"><button id="check" type="button" class="button secondary">Sprawdź pliki <span>↗</span></button><button id="convert" type="button" class="button primary">Rozpocznij konwersję <span>→</span></button></div>
+        <p class="note">Audio ma format 8-bit mono 12516 Hz, a grafika <code>.ST0/.ST1</code> dla SCUMMST. Resampler JS może dać nieco inne próbki niż wcześniejszy pipeline FFmpeg. Plików gry ani PRG nie udostępniamy na stronie.</p>
+        <div id="result" class="result hidden" aria-live="polite">
+          <div class="result-header"><div><span class="result-label">STATUS</span><h3 id="status">Oczekiwanie</h3></div><span id="spinner" class="spinner hidden"></span></div>
+          <p id="output-path" class="output-path"></p>
+          <progress id="progress" max="100" value="0" class="progress hidden"></progress>
+          <div id="file-list" class="file-list hidden"></div>
+          <a id="download" class="button primary download hidden" download>Pobierz ZIP <span>↓</span></a>
+          <div class="log-head"><span>DZIENNIK KONWERSJI</span><button id="copy-log" type="button">Kopiuj log</button></div>
+          <pre id="log" class="log"></pre>
+        </div>
+      </section>
+    </main>
+    <footer><span>SCUMMST CONVERTER</span><span>GITHUB PAGES · TWOJE PLIKI POZOSTAJĄ W PRZEGLĄDARCE</span></footer>
+  </div>
+</body>
+</html>
